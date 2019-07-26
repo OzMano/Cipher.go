@@ -1,0 +1,76 @@
+apply plugin: 'groovy'
+apply plugin: 'maven'
+apply plugin: 'com.novoda.bintray-release'
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.novoda:bintray-release:0.9.1'
+    }
+}
+
+repositories {
+    mavenCentral()
+    jcenter()
+    google()
+}
+
+dependencies {
+    implementation gradleApi()
+    implementation localGroovy()
+    implementation 'com.squareup:javapoet:1.9.0'
+    implementation 'com.android.tools.build:gradle:3.4.2'
+}
+
+sourceCompatibility = "1.8"
+targetCompatibility = "1.8"
+
+group = 'dom.team.ciphergo.security'
+archivesBaseName = 'cipher.go'
+version = '0.0.1'
+
+task zipNativeArchive(type: Zip) {
+    destinationDir project.file("build/libs")
+    archiveName "$archivesBaseName-${version}.jarx"
+    from project.zipTree("build/libs/$archivesBaseName-${version}.jar")
+    include "META-INF/**"
+    include "dom/**"
+    from "${project.rootProject.file("dylan").canonicalPath}"
+    include "src/main/**"
+    include "CMakeLists.txt"
+    exclude "src/main/cpp/include/extern-keys.h"
+    exclude "src/main/java/dom/team/ciphergo/dylan/**"
+    exclude "src/main/jni"
+    exclude "src/main/res/**"
+    exclude "src/main/AndroidManifest.xml"
+
+    doLast {
+        def originJar = project.file("build/libs/$archivesBaseName-${version}.jar")
+        def xJar = project.file("build/libs/$archivesBaseName-${version}.jarx")
+        originJar.delete()
+        xJar.renameTo(originJar)
+    }
+
+}
+
+tasks['jar'].finalizedBy zipNativeArchive
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            repository(url: uri('../repo'))
+        }
+    }
+}
+
+publish {
+    userOrg = 'ozmano'
+    groupId = project.group
+    artifactId = archivesBaseName
+    publishVersion = project.version
+    desc = 'A simple way to store string in .so library'
+    website = 'https://github.com/OzMano/Cipher.go'
+    repoName = 'Cipher.go'
+}
